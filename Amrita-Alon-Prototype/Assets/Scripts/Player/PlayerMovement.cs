@@ -1,0 +1,84 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class PlayerMovement : MonoBehaviour
+{
+    public enum ControlScheme
+    {
+        WASD,
+        ArrowKeys
+    }
+
+    [Header("Controls")]
+    [SerializeField] private ControlScheme controlScheme;
+    [SerializeField] private float movementSpeed = 6f;
+
+    private Rigidbody2D rb;
+    private Vector2 movementInput;
+    private float startingScale;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        startingScale = transform.localScale.x;
+    }
+
+    private void Update()
+    {
+        ReadInput();
+    }
+
+    private void FixedUpdate()
+    {
+        float currentScale = Mathf.Max(transform.localScale.x, 0.01f);
+        float adjustedSpeed = movementSpeed * (startingScale / currentScale);
+
+        rb.linearVelocity = movementInput * adjustedSpeed;
+    }
+
+    private void ReadInput()
+    {
+        Keyboard keyboard = Keyboard.current;
+
+        if (keyboard == null)
+        {
+            movementInput = Vector2.zero;
+            return;
+        }
+
+        float horizontal = 0f;
+        float vertical = 0f;
+
+        if (controlScheme == ControlScheme.WASD)
+        {
+            if (keyboard.aKey.isPressed) horizontal = -1f;
+            if (keyboard.dKey.isPressed) horizontal = 1f;
+            if (keyboard.sKey.isPressed) vertical = -1f;
+            if (keyboard.wKey.isPressed) vertical = 1f;
+        }
+        else
+        {
+            if (keyboard.leftArrowKey.isPressed) horizontal = -1f;
+            if (keyboard.rightArrowKey.isPressed) horizontal = 1f;
+            if (keyboard.downArrowKey.isPressed) vertical = -1f;
+            if (keyboard.upArrowKey.isPressed) vertical = 1f;
+        }
+
+        // Prevent diagonal movement. Horizontal input takes priority
+        // when horizontal and vertical buttons are pressed together.
+        if (horizontal != 0f)
+        {
+            vertical = 0f;
+        }
+
+        movementInput = new Vector2(horizontal, vertical);
+    }
+
+    private void OnDisable()
+    {
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+        }
+    }
+}
