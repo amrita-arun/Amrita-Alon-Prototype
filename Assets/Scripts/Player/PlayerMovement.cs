@@ -33,7 +33,7 @@ public class PlayerMovement : MonoBehaviour
         float currentScale = Mathf.Max(transform.localScale.x, 0.01f);
         float adjustedSpeed = movementSpeed * (startingScale / currentScale);
 
-        rb.linearVelocity = movementInput * adjustedSpeed;
+        rb.linearVelocity = new Vector3(movementInput.x * adjustedSpeed, movementInput.y * adjustedSpeed, 0f);
     }
 
     private void ReadInput()
