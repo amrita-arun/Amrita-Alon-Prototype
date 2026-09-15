@@ -13,13 +13,13 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private ControlScheme controlScheme;
     [SerializeField] private float movementSpeed = 6f;
 
-    private Rigidbody2D rb;
+    private Rigidbody rb;
     private Vector2 movementInput;
     private float startingScale;
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody>();
         startingScale = transform.localScale.x;
     }
 
@@ -66,10 +66,11 @@ public class PlayerMovement : MonoBehaviour
 
         // Prevent diagonal movement. Horizontal input takes priority
         // when horizontal and vertical buttons are pressed together.
-        if (horizontal != 0f)
-        {
-            vertical = 0f;
-        }
+        // if (horizontal != 0f)
+        // {
+        //     vertical = 0f;
+        // }
+
 
         movementInput = new Vector2(horizontal, vertical);
     }
