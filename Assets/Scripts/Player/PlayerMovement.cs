@@ -54,6 +54,10 @@ public class PlayerMovement : MonoBehaviour
 
     public void ApplyKnockback(Vector3 velocity, float duration)
     {
+        if(GameSFX.Instance != null)
+        {
+            GameSFX.Instance.PlayCollider();
+        }
         velocity.z = 0f;
         rb.linearVelocity = velocity;
         knockbackTimer = duration;

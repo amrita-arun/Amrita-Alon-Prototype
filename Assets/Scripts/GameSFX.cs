@@ -9,6 +9,9 @@ public class GameSFX : MonoBehaviour
     [SerializeField] private AudioClip correctFoodClip;
     [SerializeField] private AudioClip wrongFoodClip;
     [SerializeField] private AudioClip deathClip;
+    [SerializeField] private AudioClip collideClip;
+    [SerializeField] private AudioClip countdownClip;
+    [SerializeField] private AudioClip GOClip;
 
     [Header("Volume")]
     [Range(0f, 1f)]
@@ -19,6 +22,15 @@ public class GameSFX : MonoBehaviour
 
     [Range(0f, 1f)]
     [SerializeField] private float deathVolume = 0.6f;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float collideVolume = 0.5f;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float countdownVolume = 0.6f;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float GOVolume = 7f;
 
     private AudioSource audioSource;
 
@@ -63,6 +75,33 @@ public class GameSFX : MonoBehaviour
                 0.35f
             );
         }
+
+        if(collideClip == null)
+        {
+            collideClip = CreateBuzz(
+                "CollidePlaceholder",
+                50f,
+                0.6f
+            );
+        }
+
+        if(countdownClip == null)
+        {
+            countdownClip = CreateTone(
+                "CountdownPlaceholder",
+                80f,
+                0.3f
+            );
+        }
+        
+        if(GOClip == null)
+        {
+            GOClip = CreateTone(
+                "GOPlaceholder",
+                90f,
+                0.5f
+            );
+        }
     }
 
     public void PlayCorrectFood()
@@ -78,6 +117,20 @@ public class GameSFX : MonoBehaviour
     public void PlayDeath()
     {
         audioSource.PlayOneShot(deathClip, deathVolume);
+    }
+    
+    public void PlayCollider()
+    {
+        audioSource.PlayOneShot(collideClip, collideVolume);
+    }
+
+    public void PlayCountdown()
+    {
+        audioSource.PlayOneShot(countdownClip, countdownVolume);
+    }
+
+    public void PlayGO(){
+        audioSource.PlayOneShot(GOClip, GOVolume);
     }
 
     private AudioClip CreateTone(

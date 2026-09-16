@@ -121,6 +121,7 @@ public float gameOverDisplayDelay = 0.45f;
             {
                 countdownText.gameObject.SetActive(true);
                 countdownText.text = Mathf.Ceil(count).ToString();
+                if(GameSFX.Instance != null) GameSFX.Instance.PlayCountdown();
             }
             yield return new WaitForSeconds(1f);
             count -= 1f;
@@ -129,6 +130,7 @@ public float gameOverDisplayDelay = 0.45f;
         if (countdownText != null)
         {
             countdownText.text = goText;
+            if(GameSFX.Instance != null) GameSFX.Instance.PlayGO();
         }
         yield return new WaitForSeconds(goDisplayTime);
 
