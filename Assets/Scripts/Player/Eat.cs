@@ -39,10 +39,20 @@ public class PlayerEat : MonoBehaviour
     {
         if (myTag == matchingTag)
         {
+            if (GameSFX.Instance != null)
+            {
+                GameSFX.Instance.PlayCorrectFood();
+            }
+
             Grow();
         }
         else
         {
+            if (GameSFX.Instance != null)
+            {
+                GameSFX.Instance.PlayWrongFood();
+            }
+
             Shrink();
         }
 
@@ -69,7 +79,17 @@ public class PlayerEat : MonoBehaviour
             }
 
             // Then destroy this player, same as the original Eat.cs behavior.
-            Destroy(gameObject);
+            PlayerDeathJuice deathJuice =
+                GetComponent<PlayerDeathJuice>();
+
+            if (deathJuice != null)
+            {
+                deathJuice.BeginDeath();
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }

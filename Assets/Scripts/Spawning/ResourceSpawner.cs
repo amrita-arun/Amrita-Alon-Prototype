@@ -23,14 +23,49 @@ public class ResourceSpawner : MonoBehaviour
     [SerializeField] private float spawnClearance = 0.5f;
     [SerializeField] private int maximumSpawnAttempts = 20;
 
+    [Header("Comeback Spawning")]
+    [Tooltip("No spawn-ratio adjustment until the size difference reaches this value.")]
+    [SerializeField] private float sizeDifferenceBeforeBias = 0.75f;
+
+    [Tooltip("The size difference at which the maximum spawn bias is reached.")]
+    [SerializeField] private float sizeDifferenceForMaximumBias = 3f;
+
+    [Tooltip("0.25 allows the spawn ratio to shift from 50/50 up to 75/25.")]
+    [Range(0f, 0.45f)]
+    [SerializeField] private float maximumComebackBias = 0.25f;
+
+    private Transform circlePlayer;
+    private Transform trianglePlayer;
+
     private void Start()
     {
+        FindPlayers();
+
         for (int i = 0; i < startingResourceCount; i++)
         {
             TrySpawnResource();
         }
 
         StartCoroutine(SpawnContinuously());
+    }
+
+    private void FindPlayers()
+    {
+        GameObject circleObject =
+            GameObject.FindGameObjectWithTag("Circle");
+
+        GameObject triangleObject =
+            GameObject.FindGameObjectWithTag("Triangle");
+
+        if (circleObject != null)
+        {
+            circlePlayer = circleObject.transform;
+        }
+
+        if (triangleObject != null)
+        {
+            trianglePlayer = triangleObject.transform;
+        }
     }
 
     private IEnumerator SpawnContinuously()
@@ -50,18 +85,25 @@ public class ResourceSpawner : MonoBehaviour
     {
         for (int attempt = 0; attempt < maximumSpawnAttempts; attempt++)
         {
-            Vector2 spawnPosition = new Vector2(
+            Vector3 spawnPosition = new Vector3(
                 Random.Range(minimumX, maximumX),
-                Random.Range(minimumY, maximumY)
+                Random.Range(minimumY, maximumY),
+                0f
             );
 
-            bool positionIsOccupied =
-                Physics2D.OverlapCircle(spawnPosition, spawnClearance) != null;
+            bool positionIsOccupied = Physics.CheckSphere(
+                spawnPosition,
+                spawnClearance,
+                Physics.AllLayers,
+                QueryTriggerInteraction.Collide
+            );
 
             if (!positionIsOccupied)
             {
+                float circleSpawnChance = CalculateCircleSpawnChance();
+
                 GameObject prefabToSpawn =
-                    Random.value < 0.5f
+                    Random.value < circleSpawnChance
                         ? circleResourcePrefab
                         : triangleResourcePrefab;
 
@@ -75,5 +117,42 @@ public class ResourceSpawner : MonoBehaviour
                 return;
             }
         }
+    }
+
+    private float CalculateCircleSpawnChance()
+    {
+        // Use an even ratio if either player no longer exists.
+        if (circlePlayer == null || trianglePlayer == null)
+        {
+            return 0.5f;
+        }
+
+        float circleSize = circlePlayer.localScale.x;
+        float triangleSize = trianglePlayer.localScale.x;
+        float sizeDifference = circleSize - triangleSize;
+        float absoluteDifference = Mathf.Abs(sizeDifference);
+
+        // Keep normal 50/50 spawning while their sizes are reasonably close.
+        if (absoluteDifference <= sizeDifferenceBeforeBias)
+        {
+            return 0.5f;
+        }
+
+        float biasProgress = Mathf.InverseLerp(
+            sizeDifferenceBeforeBias,
+            sizeDifferenceForMaximumBias,
+            absoluteDifference
+        );
+
+        float currentBias = maximumComebackBias * biasProgress;
+
+        if (circleSize > triangleSize)
+        {
+            // Circle is winning: spawn fewer circles and more triangles.
+            return 0.5f - currentBias;
+        }
+
+        // Triangle is winning: spawn more circles and fewer triangles.
+        return 0.5f + currentBias;
     }
 }

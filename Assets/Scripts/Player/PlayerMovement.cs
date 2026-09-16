@@ -16,6 +16,10 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody rb;
     private Vector2 movementInput;
     private float startingScale;
+    private float knockbackTimer;
+
+    public bool HasMovementInput =>
+    movementInput.sqrMagnitude > 0.01f;
 
     private void Awake()
     {
@@ -30,10 +34,29 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // While being knocked back, preserve the impact velocity instead of
+        // immediately replacing it with normal movement.
+        if (knockbackTimer > 0f)
+        {
+            knockbackTimer -= Time.fixedDeltaTime;
+            return;
+        }
+
         float currentScale = Mathf.Max(transform.localScale.x, 0.01f);
         float adjustedSpeed = movementSpeed * (startingScale / currentScale);
 
-        rb.linearVelocity = new Vector3(movementInput.x * adjustedSpeed, movementInput.y * adjustedSpeed, 0f);
+        rb.linearVelocity = new Vector3(
+            movementInput.x * adjustedSpeed,
+            movementInput.y * adjustedSpeed,
+            0f
+        );
+    }
+
+    public void ApplyKnockback(Vector3 velocity, float duration)
+    {
+        velocity.z = 0f;
+        rb.linearVelocity = velocity;
+        knockbackTimer = duration;
     }
 
     private void ReadInput()
@@ -64,22 +87,16 @@ public class PlayerMovement : MonoBehaviour
             if (keyboard.upArrowKey.isPressed) vertical = 1f;
         }
 
-        // Prevent diagonal movement. Horizontal input takes priority
-        // when horizontal and vertical buttons are pressed together.
-        // if (horizontal != 0f)
-        // {
-        //     vertical = 0f;
-        // }
-
-
         movementInput = new Vector2(horizontal, vertical);
     }
 
     private void OnDisable()
     {
+        knockbackTimer = 0f;
+
         if (rb != null)
         {
-            rb.linearVelocity = Vector2.zero;
+            rb.linearVelocity = Vector3.zero;
         }
     }
 }

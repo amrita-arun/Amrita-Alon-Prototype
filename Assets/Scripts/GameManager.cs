@@ -34,6 +34,8 @@ public class GameManager : MonoBehaviour
     public float goDisplayTime = 0.5f;
 
     [Header("Game Over UI")]
+    [Tooltip("Allows the death animation to play before showing the winner.")]
+public float gameOverDisplayDelay = 0.45f;  
     public GameObject gameOverPanel;
     public TextMeshProUGUI gameOverText;
     public Button restartButton;
@@ -46,6 +48,21 @@ public class GameManager : MonoBehaviour
     private PlayerMovement circleMovement;
     private PlayerMovement triangleMovement;
 
+    
+
+    [Header("Stalemate Detection")]
+    [Tooltip("How long large players must remain touching before the match ends.")]
+    public float stalemateDuration = 3f;
+
+    [Tooltip("Prevents ordinary early-game collisions from causing a stalemate.")]
+    public float minimumCombinedSizeForStalemate = 10f;
+
+    [Tooltip("If their sizes are this close, the result is a draw.")]
+    public float tieSizeTolerance = 0.05f;
+
+    private float stalemateTimer;
+    private Vector3 previousCirclePosition;
+    private Vector3 previousTrianglePosition;
     void Awake()
     {
         // Scene-local singleton. Intentionally NOT DontDestroyOnLoad — on restart we
@@ -71,14 +88,26 @@ public class GameManager : MonoBehaviour
 
         SetPlayersFrozen(true);
         StartCoroutine(CountdownRoutine());
-    }
 
+        if (circlePlayer != null)
+        {
+            previousCirclePosition = circlePlayer.transform.position;
+        }
+
+        if (trianglePlayer != null)
+        {
+            previousTrianglePosition = trianglePlayer.transform.position;
+        }
+    }
     void Update()
     {
         if (Input.GetKeyDown(restartKey))
         {
             RestartLevel();
+            return;
         }
+
+        CheckForStalemate();
     }
 
     private IEnumerator CountdownRoutine()
@@ -120,6 +149,8 @@ public class GameManager : MonoBehaviour
         if (triangleMovement != null) triangleMovement.enabled = !frozen;
     }
 
+
+   
     /// <summary>
     /// Called by PlayerEat when a player's size hits its minimum. GameManager decides
     /// what that means for the match (the OTHER tag wins).
@@ -137,8 +168,9 @@ public class GameManager : MonoBehaviour
         State = GameState.GameOver;
         SetPlayersFrozen(true);
 
-        if (gameOverPanel != null) gameOverPanel.SetActive(true);
-        if (gameOverText != null) gameOverText.text = $"{winningTag} Wins!";
+        StartCoroutine(
+            ShowGameOverAfterDelay(winningTag)
+        );
     }
 
     /// <summary>Reloads the current scene (merged in from ResetScene.cs).</summary>
@@ -147,4 +179,101 @@ public class GameManager : MonoBehaviour
         int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
         SceneManager.LoadScene(currentSceneIndex);
     }
+
+    private void CheckForStalemate()
+    {
+        if (State != GameState.Playing)
+        {
+            stalemateTimer = 0f;
+            return;
+        }
+
+        if (circlePlayer == null || trianglePlayer == null)
+        {
+            stalemateTimer = 0f;
+            return;
+        }
+
+        float circleSize = circlePlayer.transform.localScale.x;
+        float triangleSize = trianglePlayer.transform.localScale.x;
+        float combinedSize = circleSize + triangleSize;
+
+        bool playersAreLargeEnough =
+            combinedSize >= minimumCombinedSizeForStalemate;
+
+        bool stalemateIsHappening =
+            playersAreLargeEnough &&
+            PlayerCollisionJuice.PlayersAreTouching;
+
+        if (!stalemateIsHappening)
+        {
+            stalemateTimer = 0f;
+            return;
+        }
+
+        stalemateTimer += Time.deltaTime;
+
+        if (stalemateTimer < stalemateDuration)
+            return;
+
+        if (Mathf.Abs(circleSize - triangleSize) <= tieSizeTolerance)
+        {
+            TriggerStalemateEnd("", null);
+        }
+        else if (circleSize > triangleSize)
+        {
+            TriggerStalemateEnd(circleTag, trianglePlayer);
+        }
+        else
+        {
+            TriggerStalemateEnd(triangleTag, circlePlayer);
+        }
+    }
+
+    private void TriggerStalemateEnd(
+    string winningTag,
+    GameObject losingPlayer
+    )
+    {
+        EndGame(winningTag);
+
+        if (losingPlayer == null)
+            return;
+
+        PlayerDeathJuice deathJuice =
+            losingPlayer.GetComponent<PlayerDeathJuice>();
+
+        if (deathJuice != null)
+        {
+            deathJuice.BeginDeath();
+        }
+        else
+        {
+            Destroy(losingPlayer);
+        }
+    }
+
+    private IEnumerator ShowGameOverAfterDelay(
+        string winningTag
+    )
+    {
+        yield return new WaitForSeconds(
+            gameOverDisplayDelay
+        );
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+        }
+
+        if (gameOverText != null)
+        {
+            gameOverText.text =
+                string.IsNullOrEmpty(winningTag)
+                    ? "Draw!"
+                    : $"{winningTag} Wins!";
+        }
+    }
+    
 }
+
